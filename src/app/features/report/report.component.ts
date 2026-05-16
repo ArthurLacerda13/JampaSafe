@@ -1,0 +1,129 @@
+import { Component, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { OcorrenciaService } from '../../core/services/ocorrencia.service';
+import { Router } from '@angular/router';
+
+@Component({
+  selector: 'app-report',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule],
+  template: `
+    <div class="report-container">
+      <div class="card">
+        <h2>Relatar Problema Urbano</h2>
+        <p class="subtitle">Ajude a melhorar João Pessoa informando problemas em seu bairro.</p>
+        
+        <form [formGroup]="reportForm" (ngSubmit)="onSubmit()">
+          <div class="form-group">
+            <label for="titulo">Título da Ocorrência</label>
+            <input id="titulo" type="text" formControlName="titulo" placeholder="Ex: Buraco na Rua principal">
+            @if (reportForm.get('titulo')?.invalid && reportForm.get('titulo')?.touched) {
+              <small class="error">O título é obrigatório (mín. 5 caracteres).</small>
+            }
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="bairro">Bairro</label>
+              <select id="bairro" formControlName="bairro">
+                <option value="">Selecione o bairro</option>
+                @for (bairro of bairros; track bairro) {
+                  <option [value]="bairro">{{ bairro }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="categoria">Categoria</label>
+              <select id="categoria" formControlName="categoria">
+                <option value="Infraestrutura">Infraestrutura</option>
+                <option value="Iluminação">Iluminação</option>
+                <option value="Limpeza">Limpeza</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="descricao">Descrição Detalhada</label>
+            <textarea id="descricao" formControlName="descricao" rows="4" placeholder="Descreva o problema com detalhes para facilitar o atendimento..."></textarea>
+            @if (reportForm.get('descricao')?.invalid && reportForm.get('descricao')?.touched) {
+              <small class="error">A descrição é obrigatória.</small>
+            }
+          </div>
+
+          <div class="actions">
+            <button type="button" class="btn-secondary" (click)="onCancel()">Cancelar</button>
+            <button type="submit" class="btn-primary" [disabled]="reportForm.invalid">Enviar Denúncia</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `,
+  styles: [`
+    .report-container { padding: 2rem; display: flex; justify-content: center; }
+    .card { background: white; padding: 2.5rem; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); width: 100%; max-width: 600px; }
+    h2 { margin: 0; color: #212529; font-size: 1.8rem; }
+    .subtitle { color: #6c757d; margin-bottom: 2rem; }
+    
+    .form-group { margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    
+    label { font-weight: 600; color: #495057; font-size: 0.9rem; }
+    input, select, textarea { 
+      padding: 0.8rem; 
+      border: 1px solid #ced4da; 
+      border-radius: 6px; 
+      font-size: 1rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #ffc107;
+      box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.2);
+    }
+    
+    .error { color: #dc3545; font-size: 0.8rem; font-weight: 500; }
+    
+    .actions { display: flex; gap: 1rem; margin-top: 2rem; }
+    button { flex: 1; padding: 1rem; border-radius: 6px; font-weight: bold; cursor: pointer; transition: all 0.2s; border: none; }
+    
+    .btn-primary { background: #ffc107; color: #212529; }
+    .btn-primary:hover:not(:disabled) { background: #e0a800; }
+    .btn-primary:disabled { background: #e9ecef; color: #adb5bd; cursor: not-allowed; }
+    
+    .btn-secondary { background: #f8f9fa; color: #6c757d; border: 1px solid #dee2e6; }
+    .btn-secondary:hover { background: #e9ecef; }
+
+    @media (max-width: 600px) {
+      .form-row { grid-template-columns: 1fr; }
+      .card { padding: 1.5rem; }
+    }
+  `]
+})
+export class ReportComponent {
+  private fb = inject(FormBuilder);
+  private service = inject(OcorrenciaService);
+  private router = inject(Router);
+
+  bairros = ['Mangabeira', 'Bessa', 'Cabo Branco', 'Manaíra', 'Gramame', 'Bancários', 'Altiplano', 'Torre'];
+
+  reportForm: FormGroup = this.fb.group({
+    titulo: ['', [Validators.required, Validators.minLength(5)]],
+    bairro: ['', Validators.required],
+    categoria: ['Infraestrutura', Validators.required],
+    descricao: ['', [Validators.required, Validators.maxLength(500)]]
+  });
+
+  onSubmit() {
+    if (this.reportForm.valid) {
+      this.service.adicionarOcorrencia(this.reportForm.value);
+      alert('Denúncia enviada com sucesso! Obrigado por colaborar.');
+      this.router.navigate(['/feed']);
+    }
+  }
+
+  onCancel() {
+    this.router.navigate(['/feed']);
+  }
+}

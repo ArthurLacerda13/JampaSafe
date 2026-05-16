@@ -1,0 +1,29 @@
+[
+  {
+    "id": 1,
+    "titulo": "Buraco na via principal",
+    "descricao": "Cratera na via que dificulta o tráfego de veículos pesados.",
+    "categoria": "Infraestrutura",
+    "bairro": "Mangabeira",
+    "status": "pendente",
+    "dataRelato": "2024-05-10T10:00:00Z"
+  },
+  {
+    "id": 2,
+    "titulo": "Poste apagado há 3 dias",
+    "descricao": "Lâmpada do poste quebrado na frente da padaria.",
+    "categoria": "Iluminação",
+    "bairro": "Bessa",
+    "status": "em-progresso",
+    "dataRelato": "2024-05-12T19:30:00Z"
+  },
+  {
+    "id": 3,
+    "titulo": "Acúmulo de lixo no canteiro central",
+    "descricao": "Descarte irregular de entulhos e lixo doméstico.",
+    "categoria": "Limpeza",
+    "bairro": "Cabo Branco",
+    "status": "resolvido",
+    "dataRelato": "2024-05-14T08:15:00Z"
+  }
+]
