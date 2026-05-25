@@ -56,7 +56,8 @@ import { OcorrenciaService } from '../../core/services/ocorrencia.service';
                   <select 
                     class="status-select" 
                     [value]="item.status" 
-                    (change)="alterarStatus(item.id, $event)">
+                    [disabled]="item.status === 'resolvido'"
+                    (change)="alterarStatus(item, $event)">
                     <option value="pendente">Pendente</option>
                     <option value="em-progresso">Em Progresso</option>
                     <option value="resolvido">Resolvido</option>
@@ -163,6 +164,16 @@ import { OcorrenciaService } from '../../core/services/ocorrencia.service';
       box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
     }
 
+    .status-select:disabled {
+      background: #e9ecef;
+      color: #6c757d;
+      border-color: #ced4da;
+      cursor: not-allowed;
+      opacity: 0.8;
+      background-image: none;
+      padding-right: 1rem;
+    }
+
     .item-info h4 {
       margin: 0.25rem 0 0.5rem;
       font-size: 1.1rem;
@@ -241,11 +252,20 @@ export class DashboardComponent {
   }
 
   // Altera o status de uma ocorrência no Supabase
-  async alterarStatus(id?: number, event?: Event) {
-    if (!id || !event) return;
+  async alterarStatus(item: any, event?: Event) {
+    if (!item || !item.id || !event) return;
+    
+    // Impede alterar se já estiver resolvida
+    if (item.status === 'resolvido') {
+      alert('Não é possível alterar o status de uma ocorrência resolvida.');
+      const select = event.target as HTMLSelectElement;
+      select.value = 'resolvido';
+      return;
+    }
+
     const select = event.target as HTMLSelectElement;
     const novoStatus = select.value as 'pendente' | 'em-progresso' | 'resolvido';
-    await this.service.atualizarStatus(id, novoStatus);
+    await this.service.atualizarStatus(item.id, novoStatus);
   }
 }
 

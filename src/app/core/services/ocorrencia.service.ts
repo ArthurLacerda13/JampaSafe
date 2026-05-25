@@ -88,6 +88,12 @@ export class OcorrenciaService {
   // Atualiza o status de uma ocorrência no Supabase
   async atualizarStatus(id: number, novoStatus: 'pendente' | 'em-progresso' | 'resolvido') {
     try {
+      // Impede alteração se já estiver resolvida
+      const atual = this._ocorrencias().find(o => o.id === id);
+      if (atual && atual.status === 'resolvido') {
+        return;
+      }
+
       const { error } = await this.supabase
         .from('ocorrencias')
         .update({ status: novoStatus })
