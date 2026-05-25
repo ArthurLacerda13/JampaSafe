@@ -67,5 +67,23 @@ export class OcorrenciaService {
       console.error('Erro ao adicionar ocorrência', error);
     }
   }
+
+  // Remove uma ocorrência do Supabase pelo ID
+  async removerOcorrencia(id: number) {
+    try {
+      const { error } = await this.supabase
+        .from('ocorrencias')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      // Recarrega lista após deletar
+      await this.carregarOcorrencias();
+    } catch (error) {
+      console.error('Erro ao remover ocorrência', error);
+    }
+  }
 }
+
 
