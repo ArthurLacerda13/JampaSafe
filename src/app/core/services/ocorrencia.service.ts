@@ -84,6 +84,23 @@ export class OcorrenciaService {
       console.error('Erro ao remover ocorrência', error);
     }
   }
+
+  // Atualiza o status de uma ocorrência no Supabase
+  async atualizarStatus(id: number, novoStatus: 'pendente' | 'em-progresso' | 'resolvido') {
+    try {
+      const { error } = await this.supabase
+        .from('ocorrencias')
+        .update({ status: novoStatus })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Recarrega lista após atualizar
+      await this.carregarOcorrencias();
+    } catch (error) {
+      console.error('Erro ao atualizar status', error);
+    }
+  }
 }
 
 

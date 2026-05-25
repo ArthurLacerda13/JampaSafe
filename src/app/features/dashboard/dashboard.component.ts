@@ -51,9 +51,21 @@ import { OcorrenciaService } from '../../core/services/ocorrencia.service';
                 <h4>{{ item.titulo }}</h4>
                 <p>📍 {{ item.bairro }} • 🏷️ {{ item.categoria }}</p>
               </div>
-              <button class="btn-deletar" (click)="confirmarRemocao(item.id)">
-                Remover
-              </button>
+              <div class="item-acoes">
+                <div class="status-seletor-container">
+                  <select 
+                    class="status-select" 
+                    [value]="item.status" 
+                    (change)="alterarStatus(item.id, $event)">
+                    <option value="pendente">Pendente</option>
+                    <option value="em-progresso">Em Progresso</option>
+                    <option value="resolvido">Resolvido</option>
+                  </select>
+                </div>
+                <button class="btn-deletar" (click)="confirmarRemocao(item.id)">
+                  Remover
+                </button>
+              </div>
             </div>
           } @empty {
             <div class="empty-state">
@@ -111,9 +123,44 @@ import { OcorrenciaService } from '../../core/services/ocorrencia.service';
     }
 
     .lista-item:hover {
-      border-color: #ff3b30;
-      box-shadow: 0 4px 20px rgba(255, 59, 48, 0.05);
+      border-color: #007bff;
+      box-shadow: 0 4px 20px rgba(0, 123, 255, 0.05);
       transform: translateY(-2px);
+    }
+
+    .item-acoes {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .status-select {
+      background: #f8f9fa;
+      border: 1px solid #ced4da;
+      color: #495057;
+      padding: 0.5rem 2.2rem 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      background-size: 16px 12px;
+      transition: all 0.2s ease;
+    }
+
+    .status-select:hover {
+      border-color: #007bff;
+      background-color: #fff;
+    }
+
+    .status-select:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
     }
 
     .item-info h4 {
@@ -191,6 +238,14 @@ export class DashboardComponent {
     if (confirmou) {
       await this.service.removerOcorrencia(id);
     }
+  }
+
+  // Altera o status de uma ocorrência no Supabase
+  async alterarStatus(id?: number, event?: Event) {
+    if (!id || !event) return;
+    const select = event.target as HTMLSelectElement;
+    const novoStatus = select.value as 'pendente' | 'em-progresso' | 'resolvido';
+    await this.service.atualizarStatus(id, novoStatus);
   }
 }
 
