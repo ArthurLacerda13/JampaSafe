@@ -9,6 +9,8 @@ import { HeaderComponent } from './shared/components/header/header.component';
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
+// Componente raiz do JampaSafe
 export class App {
+  // Nome/Título principal do sistema
   protected readonly title = signal('jampasafe');
 }

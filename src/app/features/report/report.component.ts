@@ -102,12 +102,15 @@ import { Router } from '@angular/router';
   `]
 })
 export class ReportComponent {
+  // Injeta construtores e serviços auxiliares
   private fb = inject(FormBuilder);
   private service = inject(OcorrenciaService);
   private router = inject(Router);
 
+  // Lista de bairros para seleção
   bairros = ['Mangabeira', 'Bessa', 'Cabo Branco', 'Manaíra', 'Gramame', 'Bancários', 'Altiplano', 'Torre'];
 
+  // Estrutura e validações do formulário
   reportForm: FormGroup = this.fb.group({
     titulo: ['', [Validators.required, Validators.minLength(5)]],
     bairro: ['', Validators.required],
@@ -115,6 +118,7 @@ export class ReportComponent {
     descricao: ['', [Validators.required, Validators.maxLength(500)]]
   });
 
+  // Envia o novo relato
   onSubmit() {
     if (this.reportForm.valid) {
       this.service.adicionarOcorrencia(this.reportForm.value);
@@ -123,6 +127,7 @@ export class ReportComponent {
     }
   }
 
+  // Cancela e retorna ao feed
   onCancel() {
     this.router.navigate(['/feed']);
   }

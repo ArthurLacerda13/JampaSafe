@@ -32,4 +32,5 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
     a.active { border-bottom: 2px solid #ffc107; padding-bottom: 4px; }
   `]
 })
+// Componente de cabeçalho global com menu de navegação do site
 export class HeaderComponent {}

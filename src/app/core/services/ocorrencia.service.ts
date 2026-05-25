@@ -10,13 +10,13 @@ export class OcorrenciaService {
   private http = inject(HttpClient);
   private apiUrl = 'data/ocorrencias.json';
 
-  // State Management with Signals
+  // Estado privado (Signals)
   private _ocorrencias = signal<Ocorrencia[]>([]);
   
-  // Publicly exposed signals (read-only)
+  // Estado exposto (Apenas leitura)
   readonly ocorrencias = this._ocorrencias.asReadonly();
   
-  // Derived state examples
+  // Contadores automáticos (Reativos)
   readonly totalOcorrencias = computed(() => this._ocorrencias().length);
   readonly pendentes = computed(() => 
     this._ocorrencias().filter(o => o.status === 'pendente').length
@@ -36,7 +36,7 @@ export class OcorrenciaService {
   }
 
   adicionarOcorrencia(nova: Ocorrencia) {
-    // Simulação de POST (local)
+    // Simula salvamento local
     const novaOcorrencia: Ocorrencia = { 
       ...nova, 
       id: Date.now(), 

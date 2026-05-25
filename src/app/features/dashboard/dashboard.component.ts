@@ -59,12 +59,15 @@ import { OcorrenciaService } from '../../core/services/ocorrencia.service';
   `]
 })
 export class DashboardComponent {
+  // Injeta o serviço de ocorrências
   service = inject(OcorrenciaService);
 
+  // Filtra e conta apenas as resolvidas
   resolvidas = computed(() => 
     this.service.ocorrencias().filter(o => o.status === 'resolvido').length
   );
 
+  // Agrupa a quantidade de ocorrências por bairro
   statsPorBairro = computed(() => {
     const counts: Record<string, number> = {};
     this.service.ocorrencias().forEach(o => {

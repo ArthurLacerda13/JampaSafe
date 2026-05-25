@@ -53,5 +53,6 @@ import { OcorrenciaService } from '../../core/services/ocorrencia.service';
   `]
 })
 export class FeedComponent {
+  // Injeta o serviço de ocorrências
   service = inject(OcorrenciaService);
 }
