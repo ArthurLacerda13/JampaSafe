@@ -1,14 +1,16 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Injectable, signal, computed } from '@angular/core';
 import { Ocorrencia } from '../models/ocorrencia.model';
-import { firstValueFrom } from 'rxjs';
+import { createClient } from '@supabase/supabase-js';
 
 @Injectable({
   providedIn: 'root'
 })
 export class OcorrenciaService {
-  private http = inject(HttpClient);
-  private apiUrl = 'data/ocorrencias.json';
+  // Inicializa o cliente do Supabase
+  private supabase = createClient(
+    'https://fgkqzekvjbvlanlsnajn.supabase.co',
+    'sb_publishable_XSUpcyk4KIVG6zTvIKkNKA_cX-_5CPL'
+  );
 
   // Estado privado (Signals)
   private _ocorrencias = signal<Ocorrencia[]>([]);
@@ -26,25 +28,44 @@ export class OcorrenciaService {
     this.carregarOcorrencias();
   }
 
+  // Busca ocorrências no banco Supabase
   async carregarOcorrencias() {
     try {
-      const data = await firstValueFrom(this.http.get<Ocorrencia[]>(this.apiUrl));
-      this._ocorrencias.set(data);
+      const { data, error } = await this.supabase
+        .from('ocorrencias')
+        .select('*')
+        .order('dataRelato', { ascending: false });
+
+      if (error) throw error;
+      
+      this._ocorrencias.set((data || []) as Ocorrencia[]);
     } catch (error) {
       console.error('Erro ao carregar ocorrências', error);
     }
   }
 
-  adicionarOcorrencia(nova: Ocorrencia) {
-    // Simula salvamento local
-    const novaOcorrencia: Ocorrencia = { 
-      ...nova, 
-      id: Date.now(), 
-      status: 'pendente', 
-      dataRelato: new Date().toISOString() 
-    };
-    
-    const atualizadas = [...this._ocorrencias(), novaOcorrencia];
-    this._ocorrencias.set(atualizadas);
+  // Insere ocorrência no banco Supabase
+  async adicionarOcorrencia(nova: Ocorrencia) {
+    try {
+      const novaOcorrencia = { 
+        titulo: nova.titulo, 
+        descricao: nova.descricao, 
+        categoria: nova.categoria, 
+        bairro: nova.bairro,
+        status: 'pendente'
+      };
+
+      const { error } = await this.supabase
+        .from('ocorrencias')
+        .insert([novaOcorrencia]);
+
+      if (error) throw error;
+      
+      // Recarrega dados atualizados do Supabase
+      await this.carregarOcorrencias();
+    } catch (error) {
+      console.error('Erro ao adicionar ocorrência', error);
+    }
   }
 }
+
