@@ -1,16 +1,25 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Ocorrencia } from '../models/ocorrencia.model';
-import { createClient } from '@supabase/supabase-js';
+import { firstValueFrom } from 'rxjs';
+
+// Modelo esperado pela API backend (conforme documentacao.md)
+interface ApiOcorrencia {
+  id?: number;
+  titulo: string;
+  descricao: string;
+  localizacao: string;
+  categoria: string;
+  status: string;
+  dataCriacao?: string;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class OcorrenciaService {
-  // Inicializa o cliente do Supabase
-  private supabase = createClient(
-    'https://fgkqzekvjbvlanlsnajn.supabase.co',
-    'sb_publishable_XSUpcyk4KIVG6zTvIKkNKA_cX-_5CPL'
-  );
+  private http = inject(HttpClient);
+  private apiUrl = 'http://localhost:8080/api/ocorrencias';
 
   // Estado privado (Signals)
   private _ocorrencias = signal<Ocorrencia[]>([]);
@@ -28,55 +37,45 @@ export class OcorrenciaService {
     this.carregarOcorrencias();
   }
 
-  // Busca ocorrências no banco Supabase
+  // Busca ocorrências no banco de dados via API REST
   async carregarOcorrencias() {
     try {
-      const { data, error } = await this.supabase
-        .from('ocorrencias')
-        .select('*')
-        .order('dataRelato', { ascending: false });
-
-      if (error) throw error;
-      
-      this._ocorrencias.set((data || []) as Ocorrencia[]);
+      const data = await firstValueFrom(
+        this.http.get<ApiOcorrencia[]>(this.apiUrl)
+      );
+      const mapped = (data || []).map(o => this.mapToFrontend(o));
+      // Ordena por dataRelato decrescente (mais recentes primeiro)
+      mapped.sort((a, b) => new Date(b.dataRelato).getTime() - new Date(a.dataRelato).getTime());
+      this._ocorrencias.set(mapped);
     } catch (error) {
       console.error('Erro ao carregar ocorrências', error);
     }
   }
 
-  // Insere ocorrência no banco Supabase
+  // Insere ocorrência no banco de dados via API REST
   async adicionarOcorrencia(nova: Ocorrencia) {
     try {
-      const novaOcorrencia = { 
-        titulo: nova.titulo, 
-        descricao: nova.descricao, 
-        categoria: nova.categoria, 
-        bairro: nova.bairro,
-        status: 'pendente'
-      };
-
-      const { error } = await this.supabase
-        .from('ocorrencias')
-        .insert([novaOcorrencia]);
-
-      if (error) throw error;
+      const apiPayload = this.mapToApi(nova);
+      // Garante que o status inicial é PENDENTE
+      apiPayload.status = 'PENDENTE';
       
-      // Recarrega dados atualizados do Supabase
+      await firstValueFrom(
+        this.http.post<ApiOcorrencia>(this.apiUrl, apiPayload)
+      );
+      
+      // Recarrega dados atualizados da API
       await this.carregarOcorrencias();
     } catch (error) {
       console.error('Erro ao adicionar ocorrência', error);
     }
   }
 
-  // Remove uma ocorrência do Supabase pelo ID
+  // Remove uma ocorrência via API REST pelo ID
   async removerOcorrencia(id: number) {
     try {
-      const { error } = await this.supabase
-        .from('ocorrencias')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await firstValueFrom(
+        this.http.delete<void>(`${this.apiUrl}/${id}`)
+      );
       
       // Recarrega lista após deletar
       await this.carregarOcorrencias();
@@ -85,27 +84,73 @@ export class OcorrenciaService {
     }
   }
 
-  // Atualiza o status de uma ocorrência no Supabase
+  // Atualiza o status de uma ocorrência via API REST
   async atualizarStatus(id: number, novoStatus: 'pendente' | 'em-progresso' | 'resolvido') {
     try {
-      // Impede alteração se já estiver resolvida
       const atual = this._ocorrencias().find(o => o.id === id);
       if (atual && atual.status === 'resolvido') {
         return;
       }
 
-      const { error } = await this.supabase
-        .from('ocorrencias')
-        .update({ status: novoStatus })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      // Recarrega lista após atualizar
-      await this.carregarOcorrencias();
+      if (atual) {
+        const updatedFe = { ...atual, status: novoStatus };
+        const apiPayload = this.mapToApi(updatedFe);
+        
+        await firstValueFrom(
+          this.http.put<ApiOcorrencia>(`${this.apiUrl}/${id}`, apiPayload)
+        );
+        
+        // Recarrega lista após atualizar
+        await this.carregarOcorrencias();
+      }
     } catch (error) {
       console.error('Erro ao atualizar status', error);
     }
+  }
+
+  // Mapeamentos Auxiliares
+  private mapToFrontend(api: ApiOcorrencia): Ocorrencia {
+    return {
+      id: api.id,
+      titulo: api.titulo,
+      descricao: api.descricao,
+      bairro: api.localizacao,
+      categoria: api.categoria as 'Infraestrutura' | 'Iluminação' | 'Limpeza',
+      status: this.mapStatusToFrontend(api.status),
+      dataRelato: api.dataCriacao || new Date().toISOString()
+    };
+  }
+
+  private mapToApi(fe: Ocorrencia): ApiOcorrencia {
+    return {
+      id: fe.id,
+      titulo: fe.titulo,
+      descricao: fe.descricao,
+      localizacao: fe.bairro,
+      categoria: fe.categoria,
+      status: this.mapStatusToApi(fe.status)
+    };
+  }
+
+  private mapStatusToFrontend(status: string): 'pendente' | 'em-progresso' | 'resolvido' {
+    const s = status ? status.toUpperCase() : 'PENDENTE';
+    if (s === 'EM_ANDAMENTO' || s === 'EM_PROGRESSO') {
+      return 'em-progresso';
+    }
+    if (s === 'RESOLVIDO') {
+      return 'resolvido';
+    }
+    return 'pendente';
+  }
+
+  private mapStatusToApi(status: 'pendente' | 'em-progresso' | 'resolvido'): string {
+    if (status === 'em-progresso') {
+      return 'EM_ANDAMENTO';
+    }
+    if (status === 'resolvido') {
+      return 'RESOLVIDO';
+    }
+    return 'PENDENTE';
   }
 }
 
