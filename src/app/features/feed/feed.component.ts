@@ -9,23 +9,23 @@ import { OcorrenciaService } from '../../core/services/ocorrencia.service';
   template: `
     <div class="feed-container">
       <h1>Monitor de Zeladoria Urbana - João Pessoa</h1>
-      
+
       <div class="filters">
-        <p>Total de relatos: <strong>{{ service.totalOcorrencias() }}</strong></p>
+        <p>Total de relatos: <strong>{{ ocorrenciaService.totalOcorrencias() }}</strong></p>
       </div>
 
       <div class="grid">
-        @for (item of service.ocorrencias(); track item.id) {
-          <div class="card" [class.resolvido]="item.status === 'resolvido'">
+        @for (ocorrencia of ocorrenciaService.ocorrencias(); track ocorrencia.id) {
+          <div class="card" [class.resolvido]="ocorrencia.status === 'resolvido'">
             <div class="card-header">
-              <span class="badge" [attr.data-status]="item.status">{{ item.status }}</span>
-              <span class="category">{{ item.categoria }}</span>
+              <span class="badge" [attr.data-status]="ocorrencia.status">{{ ocorrencia.status }}</span>
+              <span class="category">{{ ocorrencia.categoria }}</span>
             </div>
-            <h3>{{ item.titulo }}</h3>
-            <p class="bairro">📍 {{ item.bairro }}</p>
-            <p class="descricao">{{ item.descricao }}</p>
+            <h3>{{ ocorrencia.titulo }}</h3>
+            <p class="bairro">📍 {{ ocorrencia.bairro }}</p>
+            <p class="descricao">{{ ocorrencia.descricao }}</p>
             <div class="card-footer">
-              <small>{{ item.dataRelato | date:'dd/MM/yyyy HH:mm' }}</small>
+              <small>{{ ocorrencia.dataRelato | date:'dd/MM/yyyy HH:mm' }}</small>
             </div>
           </div>
         } @empty {
@@ -53,6 +53,5 @@ import { OcorrenciaService } from '../../core/services/ocorrencia.service';
   `]
 })
 export class FeedComponent {
-  // Injeta o serviço de ocorrências
-  service = inject(OcorrenciaService);
+  protected readonly ocorrenciaService = inject(OcorrenciaService);
 }

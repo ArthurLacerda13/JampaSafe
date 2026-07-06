@@ -1,8 +1,9 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { OcorrenciaService } from '../../core/services/ocorrencia.service';
 import { Router } from '@angular/router';
+import { OcorrenciaService } from '../../core/services/ocorrencia.service';
+import { BairroService } from '../../core/services/bairro.service';
 
 @Component({
   selector: 'app-report',
@@ -13,12 +14,12 @@ import { Router } from '@angular/router';
       <div class="card">
         <h2>Relatar Problema Urbano</h2>
         <p class="subtitle">Ajude a melhorar João Pessoa informando problemas em seu bairro.</p>
-        
-        <form [formGroup]="reportForm" (ngSubmit)="onSubmit()">
+
+        <form [formGroup]="formulario" (ngSubmit)="enviar()">
           <div class="form-group">
             <label for="titulo">Título da Ocorrência</label>
             <input id="titulo" type="text" formControlName="titulo" placeholder="Ex: Buraco na Rua principal">
-            @if (reportForm.get('titulo')?.invalid && reportForm.get('titulo')?.touched) {
+            @if (formulario.get('titulo')?.invalid && formulario.get('titulo')?.touched) {
               <small class="error">O título é obrigatório (mín. 5 caracteres).</small>
             }
           </div>
@@ -47,14 +48,14 @@ import { Router } from '@angular/router';
           <div class="form-group">
             <label for="descricao">Descrição Detalhada</label>
             <textarea id="descricao" formControlName="descricao" rows="4" placeholder="Descreva o problema com detalhes para facilitar o atendimento..."></textarea>
-            @if (reportForm.get('descricao')?.invalid && reportForm.get('descricao')?.touched) {
+            @if (formulario.get('descricao')?.invalid && formulario.get('descricao')?.touched) {
               <small class="error">A descrição é obrigatória.</small>
             }
           </div>
 
           <div class="actions">
-            <button type="button" class="btn-secondary" (click)="onCancel()">Cancelar</button>
-            <button type="submit" class="btn-primary" [disabled]="reportForm.invalid">Enviar Denúncia</button>
+            <button type="button" class="btn-secondary" (click)="cancelar()">Cancelar</button>
+            <button type="submit" class="btn-primary" [disabled]="formulario.invalid">Enviar Denúncia</button>
           </div>
         </form>
       </div>
@@ -65,15 +66,15 @@ import { Router } from '@angular/router';
     .card { background: white; padding: 2.5rem; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); width: 100%; max-width: 600px; }
     h2 { margin: 0; color: #212529; font-size: 1.8rem; }
     .subtitle { color: #6c757d; margin-bottom: 2rem; }
-    
+
     .form-group { margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    
+
     label { font-weight: 600; color: #495057; font-size: 0.9rem; }
-    input, select, textarea { 
-      padding: 0.8rem; 
-      border: 1px solid #ced4da; 
-      border-radius: 6px; 
+    input, select, textarea {
+      padding: 0.8rem;
+      border: 1px solid #ced4da;
+      border-radius: 6px;
       font-size: 1rem;
       transition: border-color 0.2s, box-shadow 0.2s;
     }
@@ -82,16 +83,16 @@ import { Router } from '@angular/router';
       border-color: #ffc107;
       box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.2);
     }
-    
+
     .error { color: #dc3545; font-size: 0.8rem; font-weight: 500; }
-    
+
     .actions { display: flex; gap: 1rem; margin-top: 2rem; }
     button { flex: 1; padding: 1rem; border-radius: 6px; font-weight: bold; cursor: pointer; transition: all 0.2s; border: none; }
-    
+
     .btn-primary { background: #ffc107; color: #212529; }
     .btn-primary:hover:not(:disabled) { background: #e0a800; }
     .btn-primary:disabled { background: #e9ecef; color: #adb5bd; cursor: not-allowed; }
-    
+
     .btn-secondary { background: #f8f9fa; color: #6c757d; border: 1px solid #dee2e6; }
     .btn-secondary:hover { background: #e9ecef; }
 
@@ -102,33 +103,28 @@ import { Router } from '@angular/router';
   `]
 })
 export class ReportComponent {
-  // Injeta construtores e serviços auxiliares
-  private fb = inject(FormBuilder);
-  private service = inject(OcorrenciaService);
-  private router = inject(Router);
+  private readonly fb = inject(FormBuilder);
+  private readonly ocorrenciaService = inject(OcorrenciaService);
+  private readonly bairroService = inject(BairroService);
+  private readonly router = inject(Router);
 
-  // Lista de bairros para seleção
-  bairros = ['Mangabeira', 'Bessa', 'Cabo Branco', 'Manaíra', 'Gramame', 'Bancários', 'Altiplano', 'Torre'];
+  readonly bairros = this.bairroService.bairros;
 
-  // Estrutura e validações do formulário
-  reportForm: FormGroup = this.fb.group({
+  readonly formulario: FormGroup = this.fb.group({
     titulo: ['', [Validators.required, Validators.minLength(5)]],
     bairro: ['', Validators.required],
     categoria: ['Infraestrutura', Validators.required],
     descricao: ['', [Validators.required, Validators.maxLength(500)]]
   });
 
-  // Envia o novo relato
-  onSubmit() {
-    if (this.reportForm.valid) {
-      this.service.adicionarOcorrencia(this.reportForm.value);
-      alert('Denúncia enviada com sucesso! Obrigado por colaborar.');
-      this.router.navigate(['/feed']);
-    }
+  enviar(): void {
+    if (this.formulario.invalid) return;
+    this.ocorrenciaService.adicionarOcorrencia(this.formulario.value);
+    alert('Denúncia enviada com sucesso! Obrigado por colaborar.');
+    this.router.navigate(['/feed']);
   }
 
-  // Cancela e retorna ao feed
-  onCancel() {
+  cancelar(): void {
     this.router.navigate(['/feed']);
   }
 }

@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { HeaderComponent } from './shared/components/header/header.component';
 
@@ -9,8 +9,6 @@ import { HeaderComponent } from './shared/components/header/header.component';
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
-// Componente raiz do JampaSafe
 export class App {
-  // Nome/Título principal do sistema
-  protected readonly title = signal('jampasafe');
+  protected readonly title = 'jampasafe';
 }

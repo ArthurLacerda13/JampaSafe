@@ -1,6 +1,10 @@
-import { Component, inject, computed } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Ocorrencia } from '../../core/models/ocorrencia.model';
 import { OcorrenciaService } from '../../core/services/ocorrencia.service';
+import { EstatisticaService } from '../../core/services/estatistica.service';
+
+type StatusOcorrencia = 'pendente' | 'em-progresso' | 'resolvido';
 
 @Component({
   selector: 'app-dashboard',
@@ -9,32 +13,32 @@ import { OcorrenciaService } from '../../core/services/ocorrencia.service';
   template: `
     <div class="dashboard-container">
       <h1>Painel do Gestor</h1>
-      
+
       <div class="stats-grid">
         <div class="stat-card total">
           <h3>Total de Ocorrências</h3>
-          <p class="value">{{ service.totalOcorrencias() }}</p>
+          <p class="value">{{ ocorrenciaService.totalOcorrencias() }}</p>
         </div>
         <div class="stat-card pendentes">
           <h3>Pendentes</h3>
-          <p class="value">{{ service.pendentes() }}</p>
+          <p class="value">{{ ocorrenciaService.pendentes() }}</p>
         </div>
         <div class="stat-card resolvidas">
           <h3>Resolvidas</h3>
-          <p class="value">{{ resolvidas() }}</p>
+          <p class="value">{{ totalResolvidas() }}</p>
         </div>
       </div>
 
       <div class="bairros-stats">
         <h2>Ocorrências por Bairro</h2>
         <ul>
-          @for (stat of statsPorBairro(); track stat.bairro) {
+          @for (stat of contagemPorBairro(); track stat.bairro) {
             <li>
               <span>{{ stat.bairro }}</span>
               <div class="progress-bar">
-                <div class="fill" [style.width.%]="(stat.count / service.totalOcorrencias()) * 100"></div>
+                <div class="fill" [style.width.%]="(stat.total / ocorrenciaService.totalOcorrencias()) * 100"></div>
               </div>
-              <span class="count">{{ stat.count }}</span>
+              <span class="count">{{ stat.total }}</span>
             </li>
           }
         </ul>
@@ -42,28 +46,28 @@ import { OcorrenciaService } from '../../core/services/ocorrencia.service';
 
       <div class="gerenciar-secao">
         <h2>Gerenciar Ocorrências</h2>
-        
+
         <div class="ocorrencias-lista">
-          @for (item of service.ocorrencias(); track item.id) {
+          @for (ocorrencia of ocorrenciaService.ocorrencias(); track ocorrencia.id) {
             <div class="lista-item">
               <div class="item-info">
-                <span class="badge" [attr.data-status]="item.status">{{ item.status }}</span>
-                <h4>{{ item.titulo }}</h4>
-                <p>📍 {{ item.bairro }} • 🏷️ {{ item.categoria }}</p>
+                <span class="badge" [attr.data-status]="ocorrencia.status">{{ ocorrencia.status }}</span>
+                <h4>{{ ocorrencia.titulo }}</h4>
+                <p>📍 {{ ocorrencia.bairro }} • 🏷️ {{ ocorrencia.categoria }}</p>
               </div>
               <div class="item-acoes">
                 <div class="status-seletor-container">
-                  <select 
-                    class="status-select" 
-                    [value]="item.status" 
-                    [disabled]="item.status === 'resolvido'"
-                    (change)="alterarStatus(item, $event)">
+                  <select
+                    class="status-select"
+                    [value]="ocorrencia.status"
+                    [disabled]="ocorrencia.status === 'resolvido'"
+                    (change)="alterarStatus(ocorrencia, $event)">
                     <option value="pendente">Pendente</option>
                     <option value="em-progresso">Em Progresso</option>
                     <option value="resolvido">Resolvido</option>
                   </select>
                 </div>
-                <button class="btn-deletar" (click)="confirmarRemocao(item.id)">
+                <button class="btn-deletar" (click)="remover(ocorrencia.id)">
                   Remover
                 </button>
               </div>
@@ -85,7 +89,7 @@ import { OcorrenciaService } from '../../core/services/ocorrencia.service';
     .pendentes { background: #ffc107; color: #333; }
     .resolvidas { background: #28a745; }
     .value { font-size: 2.5rem; font-weight: bold; margin: 0; }
-    
+
     .bairros-stats ul { list-style: none; padding: 0; }
     .bairros-stats li { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
     .bairros-stats span { width: 120px; }
@@ -100,7 +104,7 @@ import { OcorrenciaService } from '../../core/services/ocorrencia.service';
       border-radius: 16px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
     }
-    
+
     .gerenciar-secao h2 {
       font-size: 1.5rem;
       color: #333;
@@ -134,7 +138,7 @@ import { OcorrenciaService } from '../../core/services/ocorrencia.service';
       align-items: center;
       gap: 1rem;
     }
-    
+
     .status-select {
       background: #f8f9fa;
       border: 1px solid #ced4da;
@@ -153,17 +157,8 @@ import { OcorrenciaService } from '../../core/services/ocorrencia.service';
       transition: all 0.2s ease;
     }
 
-    .status-select:hover {
-      border-color: #007bff;
-      background-color: #fff;
-    }
-
-    .status-select:focus {
-      outline: none;
-      border-color: #007bff;
-      box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-    }
-
+    .status-select:hover { border-color: #007bff; background-color: #fff; }
+    .status-select:focus { outline: none; border-color: #007bff; box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); }
     .status-select:disabled {
       background: #e9ecef;
       color: #6c757d;
@@ -174,17 +169,8 @@ import { OcorrenciaService } from '../../core/services/ocorrencia.service';
       padding-right: 1rem;
     }
 
-    .item-info h4 {
-      margin: 0.25rem 0 0.5rem;
-      font-size: 1.1rem;
-      color: #222;
-    }
-
-    .item-info p {
-      margin: 0;
-      font-size: 0.9rem;
-      color: #666;
-    }
+    .item-info h4 { margin: 0.25rem 0 0.5rem; font-size: 1.1rem; color: #222; }
+    .item-info p { margin: 0; font-size: 0.9rem; color: #666; }
 
     .badge {
       display: inline-block;
@@ -216,56 +202,32 @@ import { OcorrenciaService } from '../../core/services/ocorrencia.service';
       box-shadow: 0 4px 12px rgba(255, 59, 48, 0.2);
     }
 
-    .empty-state {
-      text-align: center;
-      padding: 3rem;
-      color: #888;
-      font-style: italic;
-    }
+    .empty-state { text-align: center; padding: 3rem; color: #888; font-style: italic; }
   `]
 })
 export class DashboardComponent {
-  // Injeta o serviço de ocorrências
-  service = inject(OcorrenciaService);
+  protected readonly ocorrenciaService = inject(OcorrenciaService);
+  protected readonly estatisticaService = inject(EstatisticaService);
 
-  // Filtra e conta apenas as resolvidas
-  resolvidas = computed(() => 
-    this.service.ocorrencias().filter(o => o.status === 'resolvido').length
-  );
+  readonly totalResolvidas = this.estatisticaService.totalResolvidas;
+  readonly contagemPorBairro = this.estatisticaService.porBairro;
 
-  // Agrupa a quantidade de ocorrências por bairro
-  statsPorBairro = computed(() => {
-    const counts: Record<string, number> = {};
-    this.service.ocorrencias().forEach(o => {
-      counts[o.bairro] = (counts[o.bairro] || 0) + 1;
-    });
-    return Object.entries(counts).map(([bairro, count]) => ({ bairro, count }));
-  });
-
-  // Solicita confirmação antes de remover a ocorrência
-  async confirmarRemocao(id?: number) {
+  async remover(id?: number): Promise<void> {
     if (!id) return;
-    const confirmou = confirm('Tem certeza que deseja remover esta ocorrência de forma permanente?');
-    if (confirmou) {
-      await this.service.removerOcorrencia(id);
+    const confirmado = confirm('Tem certeza que deseja remover esta ocorrência de forma permanente?');
+    if (confirmado) {
+      await this.ocorrenciaService.removerOcorrencia(id);
     }
   }
 
-  // Altera o status de uma ocorrência no Supabase
-  async alterarStatus(item: any, event?: Event) {
-    if (!item || !item.id || !event) return;
-    
-    // Impede alterar se já estiver resolvida
-    if (item.status === 'resolvido') {
+  async alterarStatus(ocorrencia: Ocorrencia, evento: Event): Promise<void> {
+    if (!ocorrencia.id || ocorrencia.status === 'resolvido') {
       alert('Não é possível alterar o status de uma ocorrência resolvida.');
-      const select = event.target as HTMLSelectElement;
-      select.value = 'resolvido';
+      (evento.target as HTMLSelectElement).value = 'resolvido';
       return;
     }
 
-    const select = event.target as HTMLSelectElement;
-    const novoStatus = select.value as 'pendente' | 'em-progresso' | 'resolvido';
-    await this.service.atualizarStatus(item.id, novoStatus);
+    const novoStatus = (evento.target as HTMLSelectElement).value as StatusOcorrencia;
+    await this.ocorrenciaService.atualizarStatus(ocorrencia.id, novoStatus);
   }
 }
-
